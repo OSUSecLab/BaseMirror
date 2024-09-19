@@ -1,0 +1,70 @@
+//Process.enumerateModules({
+//    onMatch: function(module) {
+////        send(module.name);
+//        if (target_module_names.includes(module.name)) {
+//            // module find
+//            printLog("[ModuleOnMatch] find " + module.name + " " + module.base + " " + module.size + " " + module.path);
+//
+////            var exports = module.enumerateExports();
+////            for (var i=0; i<exports.length; ++i) {
+////                send(exports[i].name);
+////                var exp = Module.findExportByName(module.name, exports[i].name);
+////                try {
+////                    Interceptor.attach(exp, {
+////                        onEnter: function(arg) {
+////                            printLog("[OnEnter] " + exports[i].name + " " + arg[0] + " " + arg[1] + " " + arg[2]);
+////                        },
+////                        onLeave: function(ret) {
+////                        }
+////                    });
+////                } catch (error) {
+////                    continue;
+////                }
+////            }
+//
+////            for (var i=0; i<exports.length; ++i) {
+//////                send(exports[i].name);
+////                //if (exports[i].name.includes("MiscManager") && exports[i].name.includes("HandleEvent")) {
+////                if (exports[i].name.includes("Upload")) {
+////                    //send(exports[i].name);
+////                    hookFunction(module.name, exports[i].name);
+////                }
+////            }
+//        }
+//    },
+//
+//    onComplete: function() {
+//        send("[ModuleOnComplete]");
+//    }
+//});
+
+
+
+
+var ranges = Process.enumerateRangesSync({protection: 'r--', coalesce: true});
+const pattern = '54 4f 43 00';
+
+function processNext(patt){
+			var range = ranges.pop();
+			if(!range){
+				// we are done
+				return;
+			}
+//			console.log(range.base);
+
+			Memory.scan(range.base, range.size, patt, {
+				onMatch: function(address, size){
+						console.log('[+] Pattern found at: ' + address.toString());
+						console.log(address.add(-100).readByteArray(400));
+					},
+				onError: function(reason){
+						console.log('[!] There was an error scanning memory');
+					},
+				onComplete: function(){
+						processNext(patt);
+					}
+				});
+}
+
+processNext(pattern);
+console.log("Scan finished");

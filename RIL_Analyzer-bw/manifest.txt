@@ -1,0 +1,6 @@
+Manifest-Version: 1.0
+Created-By: OSULab
+
+Name: main.class
+Main-Class: samsung_ril.src.main
+Class-Path: lib/ghidra.jar lib/json.jar
