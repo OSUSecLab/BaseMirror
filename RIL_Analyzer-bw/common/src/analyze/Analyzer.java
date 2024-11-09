@@ -107,5 +107,33 @@ public class Analyzer {
         programManager.release(Global.program);
     }
 
-    /**
-     * Initializes language-specific constants, such as
+    public void initLanguageSpecificConst() {
+        Program program = Global.getProgram();
+        CompilerSpec compilerSpec = program.getCompilerSpec();
+
+        // init arch-specific pcode consts
+        Global.LANGUAGE = program.getLanguage().toString();
+        Global.POINTER_SIZE = program.getDefaultPointerSize();
+        Global.STACK_REG = String.format("(register, %s, %d)",
+                NumericUtil.longToHexString(compilerSpec.getStackPointer().getOffset()), Global.POINTER_SIZE);
+    }
+
+
+    public static void startTimeoutWatcher(int sec) {
+        if (sec < 0)
+            return;
+        Thread t = new Thread() {
+            public void run() {
+                try {
+                    Thread.sleep(sec * 1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                RILLog.errorLog("TimeOut");
+                System.exit(1);
+            }
+        };
+        t.setDaemon(true);
+        t.start();
+    }
+}

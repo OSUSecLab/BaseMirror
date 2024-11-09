@@ -17,15 +17,162 @@ import java.util.concurrent.TimeUnit;
 
 public class FunctionUtil {
 
-    // Existing members and methods
+    public static long DISASSEMBLE_TIMEOUT = 3000;
+    public static List<Function> functions;
+    public static List<Address> addrGetRxDatas;
 
-    /**
-     * Retrieves the function containing the specified address.
-     * 
-     * @param program The program to search within.
-     * @param address The address of the function to retrieve.
-     * @return The function containing the specified address, or null if not found.
-     */
+
+    public static List<Function> getAllFunctions(Program program) {
+        if (functions != null)
+            return functions;
+
+        functions = new ArrayList<>();
+        addrGetRxDatas = new ArrayList<>();
+        // load all function if not done
+        FunctionIterator funcIt = program.getFunctionManager().getFunctions(program.getMinAddress(), true);
+
+        for (Function extfun : funcIt) {
+            functions.add(extfun);
+            if(extfun.getName().equals("GetRxData") && !extfun.getParentNamespace().isGlobal()){
+                addrGetRxDatas.add(extfun.getEntryPoint());
+            }
+        }
+
+        return functions;
+    }
+
+    public static String getClassFromFuncName(String name) {
+        name = name.replace("<EXTERNAL>::", "");
+        if (name.contains("::")) {
+            String[] tokens = name.split("::");
+            int lastIndex = tokens.length - 1;
+            return tokens[lastIndex - 1];
+        }
+        else
+            return null;
+    }
+
+    public static Function getFunctionWithName(Program program, String funcName) {
+
+        // remove parameters
+        if (funcName.contains("("))
+            funcName = funcName.substring(0, funcName.indexOf("("));
+
+        List<Function> candidates = new ArrayList<>();
+
+        Namespace namespace = null;
+        SymbolTable symbolTable = program.getSymbolTable();
+        if(funcName.contains("::")){ // class member function
+            namespace = symbolTable.getNamespace(funcName.split("::")[0], program.getGlobalNamespace());
+        }
+        if(namespace == null){// global function
+            namespace = program.getGlobalNamespace();
+        }
+
+        try {
+            FunctionIterator functionIterator = program.getFunctionManager().getFunctions(namespace.getBody(), true);
+            while(functionIterator.hasNext()){
+                Function function = functionIterator.next();
+                if(function.toString().equals(funcName)){
+                    candidates.add(function);
+                }
+            }
+        }catch (NullPointerException e){
+            e.printStackTrace();
+        }
+
+
+        if (candidates.size() == 0)
+            return null;
+        else if (candidates.size() == 1)
+            return candidates.get(0);
+        else {
+            // Multiple candidates
+            for (Function f: candidates) {
+                if (candidates.contains(f.getThunkedFunction(true)))
+                    return f;
+            }
+            return candidates.get(0);
+        }
+    }
+
+    public static Function getWrapperFunctionWithName(Program program, String funcName) {
+        Function func = getFunctionWithName(program, funcName);
+        ReferenceIterator referenceIterator = AddressUtil.getReferenceToAddress(program, func.getEntryPoint());
+        while(referenceIterator.hasNext()){
+            Reference reference = referenceIterator.next();
+            Address address = reference.getFromAddress();
+            Function wrapper = FunctionUtil.getFunctionWith(program, address);
+            if(wrapper != null && wrapper.getThunkedFunction(true).equals(func)){
+                return wrapper;
+            }
+        }
+        return func;
+    }
+
+    public static List<Function> getAllExternalFunctions(Program program) {
+
+        MemoryBlock[] blocks = program.getMemory().getBlocks();
+        MemoryBlock external = null;
+        for (MemoryBlock block : blocks) {
+            if (block.getName().equals("EXTERNAL")) {
+                external = block;
+                break;
+            }
+        }
+
+        List<Function> externalFunc = new ArrayList<>();
+
+        if (external == null)
+            return externalFunc;
+
+
+        for (Function fun: program.getFunctionManager().getFunctions(true)) {
+            if (external.contains(fun.getEntryPoint()))
+                externalFunc.add(fun);
+        }
+
+        return externalFunc;
+    }
+
+
+    public static String getFunctionSignature(Function f) {
+        StringBuilder signature = new StringBuilder();
+        String name = f.toString();
+        String returnType = f.getReturnType().toString();
+        StringBuilder params = new StringBuilder();
+
+        for (Parameter p: f.getParameters()) {
+            if (p.getDataType().toString().contains("\n")) {
+                // special case
+                try {
+                    params.append(p.toString().split(" ")[0].substring(1));
+                    params.append("*");
+                } catch (Exception e) {
+
+                }
+            }
+            else {
+                params.append(p.getDataType().toString().replace(" ", ""));
+            }
+            params.append(",");
+
+        }
+
+        if (params.length() > 0)
+            params.deleteCharAt(params.length()-1); // remove the last comma
+
+        name = name.replace("<EXTERNAL>::", "");
+        name = name.replace("\n", "");
+        signature.append(name);
+        signature.append("(");
+        signature.append(params);
+        signature.append(")");
+
+        return signature.toString();
+    }
+
+
     public static Function getFunctionWith(Program program, Address address) {
         if (address == null)
             return null;

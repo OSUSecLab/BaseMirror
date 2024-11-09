@@ -1087,12 +1087,10 @@ public class TaintEngine {
         return excluRefsList;
     }
 
-    /**
-     * Logs the command result and increments the command number counter.
-     *
-     * @param cmd The command result to be logged.
-     */
-    private void outputCmd(String cmd) {
+
+    private int cmdNum = 0;
+
+    private void outputCmd(String cmd){
         RILLog.infoLog("[Command Result] " + cmd);
         cmdNum += 1;
     }
