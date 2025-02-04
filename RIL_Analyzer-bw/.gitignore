@@ -24,3 +24,6 @@ hs_err_pid*
 
 .iml
 .xml
+output/*
+lib/ghidra.jar
+ril_binaries/samsung/ril/A226BXXU4AVB1/
