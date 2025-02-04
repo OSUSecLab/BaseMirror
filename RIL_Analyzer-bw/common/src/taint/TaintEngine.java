@@ -358,7 +358,6 @@ public class TaintEngine {
                     int offset = (int) dstNode.getOffset();
                     srcNode = ast.getInput(0);
                     put2Stack(srcNode, stackFrame, stackFlag, offset, 0);
-                    break;
                 }
             } else if (ast.getMnemonic().equals("COPY")) { // Step 1: check if the expressions match
                 Varnode output = ast.getOutput();
@@ -368,7 +367,6 @@ public class TaintEngine {
                     int offset = (int) output.getOffset();
                     srcNode = ast.getInput(0);
                     put2Stack(srcNode, stackFrame, stackFlag, offset, 0);
-                    break;
                 }
             } else if (ast.getMnemonic().equals("PIECE")) { // concat-likely functions
                 Varnode outputNode = ast.getOutput();
@@ -382,7 +380,6 @@ public class TaintEngine {
                         offsetIdx = put2Stack(inputNode2, stackFrame, stackFlag, offset, offsetIdx);
                         Varnode inputNode1 = ast.getInput(0);
                         put2Stack(inputNode1, stackFrame, stackFlag, offset, offsetIdx);
-                        break;
                     }
                 }
             }
